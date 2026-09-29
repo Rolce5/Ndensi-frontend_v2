@@ -1,0 +1,24 @@
+{
+  "name": "ndensi-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:mobile": "npm run start -w @ndensi/mobile",
+    "dev:web": "npm run dev -w @ndensi/web",
+
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+
+    "build:web": "npm run build -w @ndensi/web",
+    "build:mobile": "npm run build:check -w @ndensi/mobile",
+
+    "api:generate": "npm run generate -w @ndensi/api",
+
+    "check": "npm run typecheck && npm run lint && npm run test"
+  }
+}
