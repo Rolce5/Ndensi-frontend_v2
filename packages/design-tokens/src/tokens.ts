@@ -1,8 +1,47 @@
 export const colors = {
-  brand: {
+  // brand: {
+  //   sustainability: "#1B5E20",
+  //   water: "#01579B",
+  //   vitality: "#F9A825",
+  // },
+
+  // background: {
+  //   default: "#F8FAFC",
+  //   surface: "#FFFFFF",
+  // },
+
+  // text: {
+  //   primary: "#0F172A",
+  //   secondary: "#475569",
+  //   inverse: "#FFFFFF",
+  //   disabled: "#94A3B8",
+  // },
+
+  // border: {
+  //   default: "#E2E8F0",
+  //   strong: "#CBD5E1",
+  // },
+
+  // feedback: {
+  //   success: "#15803D",
+  //   warning: "#B45309",
+  //   danger: "#B91C1C",
+  //   info: "#0369A1",
+  // },
+
+  // state: {
+  //   disabled: "#E2E8F0",
+  //   focus: "#01579B",
+  // },
+    brand: {
     sustainability: "#1B5E20",
+    sustainabilitySoft: "#E9F5EB",
+
     water: "#01579B",
+    waterSoft: "#E5F3FB",
+
     vitality: "#F9A825",
+    vitalitySoft: "#FFF7DF",
   },
 
   background: {

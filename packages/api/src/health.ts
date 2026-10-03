@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   AppError,
   normalizeApiError,
-} from "../../design-tokens/src/app-error";
+} from "./app-error";
 
 const HealthResponseSchema = z
   .object({

@@ -11,12 +11,27 @@ export type AppErrorKind =
 
 export interface AppErrorOptions {
   kind: AppErrorKind;
+
   message: string;
 
   status?: number | undefined;
+
+  code?: string | undefined;
+
   title?: string | undefined;
+
   detail?: string | undefined;
+
+  /**
+   * Optional structured information provided
+   * by newer backend error responses.
+   *
+   * Older endpoints may not return this.
+   */
+  details?: Record<string, unknown> | undefined;
+
   fieldErrors?: Record<string, string[]> | undefined;
+
   cause?: unknown;
 }
 
@@ -24,11 +39,16 @@ export class AppError extends Error {
   readonly kind: AppErrorKind;
 
   readonly status: number | undefined;
+
+  readonly code: string | undefined;
+
   readonly title: string | undefined;
+
   readonly detail: string | undefined;
-  readonly fieldErrors:
-    | Record<string, string[]>
-    | undefined;
+
+  readonly details: Record<string, unknown> | undefined;
+
+  readonly fieldErrors: Record<string, string[]> | undefined;
 
   constructor(options: AppErrorOptions) {
     super(options.message, {
@@ -38,16 +58,48 @@ export class AppError extends Error {
     this.name = "AppError";
 
     this.kind = options.kind;
+
     this.status = options.status;
+
+    this.code = options.code;
+
     this.title = options.title;
+
     this.detail = options.detail;
+
+    this.details = options.details;
+
     this.fieldErrors = options.fieldErrors;
   }
 }
 
-function resolveKind(
-  status?: number,
-): AppErrorKind {
+/* -------------------------------------------------------------------------- */
+/*                                   Helpers                                  */
+/* -------------------------------------------------------------------------- */
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function getString(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function getNumber(value: unknown): number | undefined {
+  return typeof value === "number" ? value : undefined;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               Error kinds                                  */
+/* -------------------------------------------------------------------------- */
+
+function resolveKind(status?: number): AppErrorKind {
   if (status === undefined) {
     return "offline";
   }
@@ -73,109 +125,174 @@ function resolveKind(
       return "rate_limit";
 
     default:
-      return status >= 500
-        ? "server"
-        : "unknown";
+      return status >= 500 ? "server" : "unknown";
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*                          Validation field errors                           */
+/* -------------------------------------------------------------------------- */
 
 function extractFieldErrors(
   value: unknown,
 ): Record<string, string[]> | undefined {
-  if (
-    !value ||
-    typeof value !== "object"
-  ) {
+  if (!isRecord(value)) {
     return undefined;
   }
 
-  const object =
-    value as Record<string, unknown>;
+  /*
+   * Supports:
+   *
+   * {
+   *   errors: {
+   *     phone: "Invalid phone"
+   *   }
+   * }
+   *
+   * and:
+   *
+   * {
+   *   errors: {
+   *     phone: ["Invalid phone"]
+   *   }
+   * }
+   *
+   * and older ProblemDetail responses
+   * using fieldErrors.
+   */
+  const rawErrors = value.errors ?? value.fieldErrors;
 
-  const rawErrors =
-    object.errors ??
-    object.fieldErrors;
-
-  if (
-    !rawErrors ||
-    typeof rawErrors !== "object"
-  ) {
+  if (!isRecord(rawErrors)) {
     return undefined;
   }
 
-  const result:
-    Record<string, string[]> = {};
+  const result: Record<string, string[]> = {};
 
-  for (
-    const [field, message]
-    of Object.entries(rawErrors)
-  ) {
-    if (typeof message === "string") {
-      result[field] = [message];
+  for (const [field, rawValue] of Object.entries(rawErrors)) {
+    if (typeof rawValue === "string") {
+      result[field] = [rawValue];
+
       continue;
     }
 
-    if (
-      Array.isArray(message) &&
-      message.every(
-        (item) =>
-          typeof item === "string",
-      )
-    ) {
-      result[field] = message;
+    if (Array.isArray(rawValue)) {
+      const messages = rawValue.filter(
+        (item): item is string => typeof item === "string",
+      );
+
+      if (messages.length > 0) {
+        result[field] = messages;
+      }
     }
   }
 
-  return Object.keys(result).length > 0
-    ? result
-    : undefined;
+  return Object.keys(result).length > 0 ? result : undefined;
 }
+
+/* -------------------------------------------------------------------------- */
+/*                            Normalize API error                             */
+/* -------------------------------------------------------------------------- */
 
 export function normalizeApiError(
   error: unknown,
   response?: Response,
 ): AppError {
-  const status = response?.status;
+  /*
+   * Avoid normalizing the same error twice.
+   */
+  if (error instanceof AppError) {
+    return error;
+  }
 
-  if (
-    error &&
-    typeof error === "object"
-  ) {
-    const problem =
-      error as Record<string, unknown>;
+  /*
+   * Handles BOTH:
+   *
+   * OLD:
+   * {
+   *   success: false,
+   *   status: 403,
+   *   error: "Forbidden",
+   *   message: "...",
+   *   path: "...",
+   *   errors: null,
+   *   timestamp: "..."
+   * }
+   *
+   * NEW:
+   * {
+   *   success: false,
+   *   status: 403,
+   *   error: "Forbidden",
+   *   code: "IDENTIFIER_VERIFICATION_REQUIRED",
+   *   message: "...",
+   *   path: "...",
+   *   details: {...},
+   *   timestamp: "..."
+   * }
+   *
+   * ProblemDetail responses are also supported.
+   */
+  if (isRecord(error)) {
+    const status = getNumber(error.status) ?? response?.status;
 
-    const title =
-      typeof problem.title === "string"
-        ? problem.title
-        : undefined;
+    const code = getString(error.code ?? error.errorCode ?? error.error_code);
 
-    const detail =
-      typeof problem.detail === "string"
-        ? problem.detail
-        : undefined;
+    const backendMessage = getString(error.message);
+
+    const problemDetail = getString(error.detail);
+
+    const title = getString(error.title) ?? getString(error.error);
+
+    const details = isRecord(error.details) ? error.details : undefined;
+
+    /*
+     * Your normal backend error response uses
+     * `message`, so it takes priority.
+     *
+     * ProblemDetail uses `detail`.
+     */
+    const message =
+      backendMessage ??
+      problemDetail ??
+      title ??
+      response?.statusText ??
+      (status === undefined
+        ? "Unable to connect to the server."
+        : "The request could not be completed.");
 
     return new AppError({
       kind: resolveKind(status),
+
       status,
+
+      code,
+
       title,
-      detail,
-      message:
-        detail ??
-        title ??
-        "The request could not be completed.",
-      fieldErrors:
-        extractFieldErrors(error),
+
+      detail: problemDetail ?? backendMessage,
+
+      details,
+
+      message,
+
+      fieldErrors: extractFieldErrors(error),
+
       cause: error,
     });
   }
 
+  const status = response?.status;
+
   return new AppError({
     kind: resolveKind(status),
+
     status,
+
     message:
       status === undefined
         ? "Unable to connect to the server."
-        : "The request could not be completed.",
+        : response?.statusText || "The request could not be completed.",
+
     cause: error,
   });
 }

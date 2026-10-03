@@ -1,4 +1,4 @@
-import type { NdensiApiClient } from "../../design-tokens/src/client";
+import type { NdensiApiClient } from "./client";
 import { normalizeApiError } from "./app-error";
 
 export async function getCountries(
@@ -8,7 +8,7 @@ export async function getCountries(
     data,
     error,
     response,
-  } = await client.GET("/api/v1/countries");
+  } = await client.GET("/api/v2/countries");
 
   if (error) {
     throw normalizeApiError(
@@ -29,11 +29,11 @@ export async function getRegions(
     error,
     response,
   } = await client.GET(
-    "/api/v1/countries/{id}/regions",
+    "/api/v2/countries/{countryId}/regions",
     {
       params: {
         path: {
-          id: countryId,
+           countryId,
         },
       },
     },

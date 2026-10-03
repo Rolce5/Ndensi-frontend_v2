@@ -1021,7 +1021,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v2/auth/verify": {
+    "/api/v2/auth/verification/verify": {
         parameters: {
             query?: never;
             header?: never;
@@ -1037,7 +1037,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v2/auth/send": {
+    "/api/v2/auth/verification/send": {
         parameters: {
             query?: never;
             header?: never;
@@ -1047,6 +1047,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/auth/verification/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["resend"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1063,22 +1079,6 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["reset"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v2/auth/resend": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["resend"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1111,6 +1111,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["refresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/auth/mfa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["verify_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/auth/mfa/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["setup"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1312,38 +1344,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/mfa/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["verify_1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/mfa/setup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["setup"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v2/water/sources/{id}": {
         parameters: {
             query?: never;
@@ -1412,7 +1412,7 @@ export interface paths {
         patch: operations["updateWasteListing"];
         trace?: never;
     };
-    "/api/v2/users/me": {
+    "/api/v2/user/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -1943,6 +1943,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/countries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["countries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/countries/{countryId}/regions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["regions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/complaints/{id}": {
         parameters: {
             query?: never;
@@ -2218,38 +2250,6 @@ export interface paths {
          * @description Supporting Stage 15 operational endpoint for audit investigation.
          */
         get: operations["adminListAuditLogs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/countries": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["countries"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/countries/{countryId}/regions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["regions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2979,8 +2979,6 @@ export interface components {
             empty?: boolean;
             null?: boolean;
             float?: boolean;
-            integralNumber?: boolean;
-            floatingPointNumber?: boolean;
             /** @enum {string} */
             nodeType?: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
             string?: boolean;
@@ -3000,6 +2998,8 @@ export interface components {
             pojo?: boolean;
             int?: boolean;
             long?: boolean;
+            integralNumber?: boolean;
+            floatingPointNumber?: boolean;
             embeddedValue?: boolean;
         };
         /** @description One persistent offline operation queued by the mobile client. */
@@ -4059,6 +4059,14 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
+        MfaVerifyRequest: {
+            code: string;
+        };
+        MfaSetupResponse: {
+            type?: string;
+            secret?: string;
+            otpauthUri?: string;
+        };
         LogoutRequest: {
             refreshToken: string;
         };
@@ -4134,14 +4142,6 @@ export interface components {
             data?: components["schemas"]["AnalyticsScopeResponse"];
             /** Format: date-time */
             timestamp?: string;
-        };
-        MfaVerifyRequest: {
-            code: string;
-        };
-        MfaSetupResponse: {
-            type?: string;
-            secret?: string;
-            otpauthUri?: string;
         };
         UpdateWaterSourceRequest: {
             /** @enum {string} */
@@ -4644,6 +4644,43 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
+        ApiResponseListCountryResponse: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["CountryResponse"][];
+            /** Format: date-time */
+            timestamp?: string;
+        };
+        CountryResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            iso2?: string;
+            iso3?: string;
+            callingCode?: string;
+            currencyCode?: string;
+            currencyName?: string;
+        };
+        ApiResponseListRegionResponse: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["RegionResponse"][];
+            /** Format: date-time */
+            timestamp?: string;
+        };
+        RegionResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            countryId?: string;
+            /** Format: uuid */
+            parentRegionId?: string;
+            name?: string;
+            code?: string;
+            typeLabel?: string;
+            /** Format: int32 */
+            hierarchyLevel?: number;
+        };
         AnalyticsPeriod: {
             /** Format: date-time */
             from?: string;
@@ -4959,43 +4996,6 @@ export interface components {
             totalPages?: number;
             first?: boolean;
             last?: boolean;
-        };
-        ApiResponseListCountryResponse: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["CountryResponse"][];
-            /** Format: date-time */
-            timestamp?: string;
-        };
-        CountryResponse: {
-            /** Format: uuid */
-            id?: string;
-            name?: string;
-            iso2?: string;
-            iso3?: string;
-            callingCode?: string;
-            currencyCode?: string;
-            currencyName?: string;
-        };
-        ApiResponseListRegionResponse: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["RegionResponse"][];
-            /** Format: date-time */
-            timestamp?: string;
-        };
-        RegionResponse: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            countryId?: string;
-            /** Format: uuid */
-            parentRegionId?: string;
-            name?: string;
-            code?: string;
-            typeLabel?: string;
-            /** Format: int32 */
-            hierarchyLevel?: number;
         };
     };
     responses: never;
@@ -7190,7 +7190,7 @@ export interface operations {
             };
         };
     };
-    reset: {
+    resend: {
         parameters: {
             query?: never;
             header?: never;
@@ -7199,7 +7199,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PasswordResetRequest"];
+                "application/json": components["schemas"]["VerificationSendRequest"];
             };
         };
         responses: {
@@ -7212,7 +7212,7 @@ export interface operations {
             };
         };
     };
-    resend: {
+    reset: {
         parameters: {
             query?: never;
             header?: never;
@@ -7221,7 +7221,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["VerificationSendRequest"];
+                "application/json": components["schemas"]["PasswordResetRequest"];
             };
         };
         responses: {
@@ -7278,6 +7278,48 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseAuthResponse"];
+                };
+            };
+        };
+    };
+    verify_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    setup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MfaSetupResponse"];
                 };
             };
         };
@@ -7564,48 +7606,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseAnalyticsScopeResponse"];
-                };
-            };
-        };
-    };
-    verify_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MfaVerifyRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    setup: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MfaSetupResponse"];
                 };
             };
         };
@@ -8580,6 +8580,50 @@ export interface operations {
             };
         };
     };
+    countries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListCountryResponse"];
+                };
+            };
+        };
+    };
+    regions: {
+        parameters: {
+            query?: {
+                parentRegionId?: string;
+            };
+            header?: never;
+            path: {
+                countryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListRegionResponse"];
+                };
+            };
+        };
+    };
     getComplaint: {
         parameters: {
             query?: never;
@@ -8920,50 +8964,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponsePagedResponseAdminAuditLogResponse"];
-                };
-            };
-        };
-    };
-    countries: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseListCountryResponse"];
-                };
-            };
-        };
-    };
-    regions: {
-        parameters: {
-            query?: {
-                parentRegionId?: string;
-            };
-            header?: never;
-            path: {
-                countryId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseListRegionResponse"];
                 };
             };
         };
