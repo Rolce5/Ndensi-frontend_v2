@@ -1,273 +1,174 @@
 export interface TokenBundle {
   accessToken: string;
-
   refreshToken: string;
-}
-
-export interface AuthExchange {
-  tokens: TokenBundle | null;
+  accessTokenExpiresAt: string;
+  refreshTokenExpiresAt: string;
 }
 
 export interface OrganizationMembership {
   organizationId: string;
-
   organizationName: string | null;
-
   roleCodes: string[];
 }
 
 export interface CurrentUser {
-  id: string;
+  // id: string;
+  // firstName: string | null;
+  // lastName: string | null;
+  // email: string | null;
+  // phone: string | null;
+  // roleCodes: string[];
+  // memberships: OrganizationMembership[];
+    id: string;
 
   firstName: string | null;
 
   lastName: string | null;
 
-  email: string | null;
-
   phone: string | null;
 
-  roleCodes: string[];
+  email: string | null;
 
-  memberships: OrganizationMembership[];
+  status: string;
+
+  phoneVerified: boolean;
+
+  emailVerified: boolean;
+
+  roles: string[];
+
+  createdAt: string;
 }
 
-export interface ActiveContext {
-  key: string;
-
-  roleCode: string;
-
-  organizationId: string | null;
-
-  organizationName: string | null;
+export interface AuthExchange {
+  tokens: TokenBundle | null;
+  user: CurrentUser | null;
 }
 
-/* -------------------------------------------------------------------------- */
-/*                                   Helpers                                  */
-/* -------------------------------------------------------------------------- */
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+function isRecord(
+  value: unknown,
+): value is Record<string, unknown> {
+  return (
+    typeof value === "object" &&
+    value !== null
+  );
 }
 
-function stringValue(
-  object: Record<string, unknown>,
-
-  ...keys: string[]
-): string | null {
-  for (const key of keys) {
-    const value = object[key];
-
-    if (typeof value === "string" && value.length > 0) {
-      return value;
-    }
-  }
-
-  return null;
-}
-
-function extractRoleCodes(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const roles = new Set<string>();
-
-  for (const item of value) {
-    if (typeof item === "string") {
-      roles.add(item);
-
-      continue;
-    }
-
-    if (!isRecord(item)) {
-      continue;
-    }
-
-    const code = stringValue(item, "code", "roleCode", "name");
-
-    if (code) {
-      roles.add(code);
-    }
-  }
-
-  return [...roles];
-}
-
-/**
- * Supports endpoints that return:
- *
- * AuthResponse directly
- *
- * OR
- *
- * ApiResponse<AuthResponse>
- */
-function unwrapData(value: unknown): unknown {
-  if (!isRecord(value)) {
-    return value;
-  }
-
-  if (value.data !== undefined && value.data !== null) {
+function unwrapData(
+  value: unknown,
+): unknown {
+  if (
+    isRecord(value) &&
+    value.data !== undefined &&
+    value.data !== null
+  ) {
     return value.data;
   }
 
   return value;
 }
 
-/* -------------------------------------------------------------------------- */
-/*                          Authentication exchange                           */
-/* -------------------------------------------------------------------------- */
+function stringOrNull(
+  value: unknown,
+): string | null {
+  return typeof value === "string"
+    ? value
+    : null;
+}
 
-export function normalizeAuthExchange(value: unknown): AuthExchange {
-  const unwrapped = unwrapData(value);
-
-  if (!isRecord(unwrapped)) {
-    return {
-      tokens: null,
-    };
+function stringArray(
+  value: unknown,
+): string[] {
+  if (!Array.isArray(value)) {
+    return [];
   }
 
-  const tokensContainer = isRecord(unwrapped.tokens)
-    ? unwrapped.tokens
-    : unwrapped;
-
-  const accessToken = stringValue(
-    tokensContainer,
-    "accessToken",
-    "access_token",
+  return value.filter(
+    (item): item is string =>
+      typeof item === "string",
   );
-
-  const refreshToken = stringValue(
-    tokensContainer,
-    "refreshToken",
-    "refresh_token",
-  );
-
-  return {
-    tokens:
-      accessToken && refreshToken
-        ? {
-            accessToken,
-            refreshToken,
-          }
-        : null,
-  };
 }
 
 /* -------------------------------------------------------------------------- */
 /*                              Current user                                  */
 /* -------------------------------------------------------------------------- */
 
-export function normalizeCurrentUser(value: unknown): CurrentUser {
-  const unwrapped = unwrapData(value);
+export function normalizeCurrentUser(
+  value: unknown,
+): CurrentUser {
+  const data =
+    isRecord(value) &&
+    value.data !== undefined
+      ? value.data
+      : value;
 
-  if (!isRecord(unwrapped)) {
-    throw new Error("Invalid /users/me response.");
+  if (!isRecord(data)) {
+    throw new Error(
+      "Invalid current user response.",
+    );
   }
 
-  const id = stringValue(unwrapped, "id", "userId", "user_id");
-
-  if (!id) {
-    throw new Error("Current user response has no id.");
+  if (
+    typeof data.id !==
+    "string"
+  ) {
+    throw new Error(
+      "Current user response has no id.",
+    );
   }
 
-  const roleCodes = extractRoleCodes(
-    unwrapped.roles ?? unwrapped.roleCodes ?? unwrapped.authorities,
-  );
-
-  const memberships: OrganizationMembership[] = [];
-
-  const rawMemberships =
-    unwrapped.memberships ?? unwrapped.organizationMemberships;
-
-  if (Array.isArray(rawMemberships)) {
-    for (const membership of rawMemberships) {
-      if (!isRecord(membership)) {
-        continue;
-      }
-
-      const organization = isRecord(membership.organization)
-        ? membership.organization
-        : membership;
-
-      const organizationId = stringValue(organization, "organizationId", "id");
-
-      if (!organizationId) {
-        continue;
-      }
-
-      memberships.push({
-        organizationId,
-
-        organizationName: stringValue(organization, "organizationName", "name"),
-
-        roleCodes: extractRoleCodes(membership.roles ?? membership.roleCodes),
-      });
-    }
-  }
-
-  return {
-    id,
-
-    firstName: stringValue(unwrapped, "firstName", "first_name"),
-
-    lastName: stringValue(unwrapped, "lastName", "last_name"),
-
-    email: stringValue(unwrapped, "email"),
-
-    phone: stringValue(unwrapped, "phone", "phoneNumber"),
-
-    roleCodes,
-
-    memberships,
-  };
+  return data as unknown as CurrentUser;
 }
 
-/* -------------------------------------------------------------------------- */
-/*                             Active contexts                                */
-/* -------------------------------------------------------------------------- */
-
-export function buildActiveContexts(user: CurrentUser): ActiveContext[] {
-  const contexts = new Map<string, ActiveContext>();
-
-  for (const membership of user.memberships) {
-    for (const roleCode of membership.roleCodes) {
-      const key = `${membership.organizationId}:${roleCode}`;
-
-      contexts.set(key, {
-        key,
-
-        roleCode,
-
-        organizationId: membership.organizationId,
-
-        organizationName: membership.organizationName,
-      });
-    }
+function normalizeMemberships(
+  value: unknown,
+): OrganizationMembership[] {
+  if (!Array.isArray(value)) {
+    return [];
   }
 
-  for (const roleCode of user.roleCodes) {
-    const alreadyRepresented = [...contexts.values()].some(
-      (context) => context.roleCode === roleCode,
-    );
+  const memberships:
+    OrganizationMembership[] =
+      [];
 
-    if (alreadyRepresented) {
+  for (const item of value) {
+    if (!isRecord(item)) {
       continue;
     }
 
-    const key = `personal:${roleCode}`;
+    const organization =
+      isRecord(
+        item.organization,
+      )
+        ? item.organization
+        : item;
 
-    contexts.set(key, {
-      key,
+    const organizationId =
+      stringOrNull(
+        organization.id ??
+          organization.organizationId,
+      );
 
-      roleCode,
+    if (!organizationId) {
+      continue;
+    }
 
-      organizationId: null,
+    memberships.push({
+      organizationId,
 
-      organizationName: null,
+      organizationName:
+        stringOrNull(
+          organization.name ??
+            organization.organizationName,
+        ),
+
+      roleCodes:
+        stringArray(
+          item.roles ??
+            item.roleCodes,
+        ),
     });
   }
 
-  return [...contexts.values()];
+  return memberships;
 }

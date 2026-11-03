@@ -1,5 +1,12 @@
+import type { components } from "./generated/schema";
+
 import type { NdensiApiClient } from "./client";
+
 import { normalizeApiError } from "./app-error";
+
+export type CountryResponse = components["schemas"]["CountryResponse"];
+
+export type RegionResponse = components["schemas"]["RegionResponse"];
 
 export async function getCountries(
   client: NdensiApiClient,
@@ -8,7 +15,10 @@ export async function getCountries(
     data,
     error,
     response,
-  } = await client.GET("/api/v2/countries");
+  } = await client.GET(
+    "/api/v2/countries",
+  );
+
 
   if (error) {
     throw normalizeApiError(
@@ -17,33 +27,33 @@ export async function getCountries(
     );
   }
 
-  return data;
+  return data ?? null;
 }
 
 export async function getRegions(
   client: NdensiApiClient,
   countryId: string,
+  parentRegionId?: string,
 ) {
-  const {
-    data,
-    error,
-    response,
-  } = await client.GET(
+  const { data, error, response } = await client.GET(
     "/api/v2/countries/{countryId}/regions",
     {
       params: {
         path: {
-           countryId,
+          countryId,
         },
+
+        query: parentRegionId
+          ? {
+              parentRegionId,
+            }
+          : {},
       },
     },
   );
 
   if (error) {
-    throw normalizeApiError(
-      error,
-      response,
-    );
+    throw normalizeApiError(error, response);
   }
 
   return data;

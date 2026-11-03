@@ -1,53 +1,25 @@
-import type { paths } from "./generated/schema";
+import type { components } from "./generated/schema";
 
 import type { NdensiApiClient } from "./client";
+
 import { normalizeApiError } from "./app-error";
 
-/**
- * Extract application/json request body from an
- * OpenAPI-generated operation.
- */
-type JsonRequestBody<Operation> = Operation extends {
-  requestBody: infer RequestBody;
-}
-  ? RequestBody extends {
-      content: {
-        "application/json": infer Body;
-      };
-    }
-    ? Body
-    : never
-  : Operation extends {
-        requestBody?: infer RequestBody;
-      }
-    ? NonNullable<RequestBody> extends {
-        content: {
-          "application/json": infer Body;
-        };
-      }
-      ? Body
-      : never
-    : never;
-
-type PostOperation<Path extends keyof paths> = paths[Path] extends {
-  post?: infer Operation;
-}
-  ? NonNullable<Operation>
-  : never;
-
-type PatchOperation<Path extends keyof paths> = paths[Path] extends {
-  patch?: infer Operation;
-}
-  ? NonNullable<Operation>
-  : never;
+import type {
+  JsonRequestBody,
+  PatchOperation,
+  PostOperation,
+} from "./openapi-helpers";
 
 export type RegisterRequest = JsonRequestBody<
   PostOperation<"/api/v2/auth/register">
 >;
 
+export type RegistrationResponse =
+  components["schemas"]["RegistrationResponse"];
+
 export type LoginRequest = JsonRequestBody<PostOperation<"/api/v2/auth/login">>;
 
-export type RefreshRequest = JsonRequestBody<
+export type RefreshTokenRequest = JsonRequestBody<
   PostOperation<"/api/v2/auth/refresh">
 >;
 
@@ -55,37 +27,31 @@ export type LogoutRequest = JsonRequestBody<
   PostOperation<"/api/v2/auth/logout">
 >;
 
-export type MfaSetupRequest = JsonRequestBody<
-  PostOperation<"/api/v2/auth/mfa/setup">
->;
-
-export type MfaVerifyRequest = JsonRequestBody<
-  PostOperation<"/api/v2/auth/mfa/verify">
+export type VerificationRequest = JsonRequestBody<
+  PostOperation<"/api/v2/auth/verification/verify">
 >;
 
 export type VerificationSendRequest = JsonRequestBody<
   PostOperation<"/api/v2/auth/verification/send">
 >;
 
-export type VerificationResendRequest = JsonRequestBody<
-  PostOperation<"/api/v2/auth/verification/resend">
+export type MfaVerifyRequest = JsonRequestBody<
+  PostOperation<"/api/v2/auth/mfa/verify">
 >;
 
-export type VerificationVerifyRequest = JsonRequestBody<
-  PostOperation<"/api/v2/auth/verification/verify">
->;
-
-export type ForgotPasswordRequest = JsonRequestBody<
+export type PasswordForgotRequest = JsonRequestBody<
   PostOperation<"/api/v2/auth/forgot-password">
 >;
 
-export type ResetPasswordRequest = JsonRequestBody<
+export type PasswordResetRequest = JsonRequestBody<
   PostOperation<"/api/v2/auth/reset-password">
 >;
 
 export type UpdateMeRequest = JsonRequestBody<
   PatchOperation<"/api/v2/user/me">
 >;
+
+export type UserResponse = components["schemas"]["UserResponse"];
 
 export async function register(client: NdensiApiClient, body: RegisterRequest) {
   const { data, error, response } = await client.POST("/api/v2/auth/register", {
@@ -111,10 +77,9 @@ export async function login(client: NdensiApiClient, body: LoginRequest) {
   return data;
 }
 
-
 export async function refreshSession(
   client: NdensiApiClient,
-  body: RefreshRequest,
+  body: RefreshTokenRequest,
 ) {
   const { data, error, response } = await client.POST("/api/v2/auth/refresh", {
     body,
@@ -131,6 +96,18 @@ export async function logout(client: NdensiApiClient, body: LogoutRequest) {
   const { data, error, response } = await client.POST("/api/v2/auth/logout", {
     body,
   });
+
+  if (error) {
+    throw normalizeApiError(error, response);
+  }
+
+  return data;
+}
+
+export async function logoutAll(client: NdensiApiClient) {
+  const { data, error, response } = await client.POST(
+    "/api/v2/auth/logout-all",
+  );
 
   if (error) {
     throw normalizeApiError(error, response);
@@ -164,13 +141,8 @@ export async function updateCurrentUser(
   return data;
 }
 
-export async function setupMfa(client: NdensiApiClient, body: MfaSetupRequest) {
-  const { data, error, response } = await client.POST(
-    "/api/v2/auth/mfa/setup",
-    // {
-    //   body,
-    // },
-  );
+export async function setupMfa(client: NdensiApiClient) {
+  const { data, error, response } = await client.POST("/api/v2/auth/mfa/setup");
 
   if (error) {
     throw normalizeApiError(error, response);
@@ -217,7 +189,7 @@ export async function sendVerification(
 
 export async function resendVerification(
   client: NdensiApiClient,
-  body: VerificationResendRequest,
+  body: VerificationSendRequest,
 ) {
   const { data, error, response } = await client.POST(
     "/api/v2/auth/verification/resend",
@@ -235,7 +207,7 @@ export async function resendVerification(
 
 export async function verifyIdentifier(
   client: NdensiApiClient,
-  body: VerificationVerifyRequest,
+  body: VerificationRequest,
 ) {
   const { data, error, response } = await client.POST(
     "/api/v2/auth/verification/verify",
@@ -253,7 +225,7 @@ export async function verifyIdentifier(
 
 export async function forgotPassword(
   client: NdensiApiClient,
-  body: ForgotPasswordRequest,
+  body: PasswordForgotRequest,
 ) {
   const { data, error, response } = await client.POST(
     "/api/v2/auth/forgot-password",
@@ -271,7 +243,7 @@ export async function forgotPassword(
 
 export async function resetPassword(
   client: NdensiApiClient,
-  body: ResetPasswordRequest,
+  body: PasswordResetRequest,
 ) {
   const { data, error, response } = await client.POST(
     "/api/v2/auth/reset-password",

@@ -1943,6 +1943,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/customers/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCurrentCustomer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/countries": {
         parameters: {
             query?: never;
@@ -2979,6 +2995,8 @@ export interface components {
             empty?: boolean;
             null?: boolean;
             float?: boolean;
+            integralNumber?: boolean;
+            floatingPointNumber?: boolean;
             /** @enum {string} */
             nodeType?: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
             string?: boolean;
@@ -2998,8 +3016,6 @@ export interface components {
             pojo?: boolean;
             int?: boolean;
             long?: boolean;
-            integralNumber?: boolean;
-            floatingPointNumber?: boolean;
             embeddedValue?: boolean;
         };
         /** @description One persistent offline operation queued by the mobile client. */
@@ -4304,6 +4320,11 @@ export interface components {
              * @example true
              */
             smsEnabled?: boolean;
+            /**
+             * @description Enable Email notifications
+             * @example true
+             */
+            emailEnabled?: boolean;
         };
         ApiResponseNotificationPreferenceResponse: {
             success?: boolean;
@@ -4317,6 +4338,7 @@ export interface components {
             language?: "EN" | "FR";
             inAppEnabled?: boolean;
             smsEnabled?: boolean;
+            emailEnabled?: boolean;
         };
         ApiResponseListWaterQualityTestResponse: {
             success?: boolean;
@@ -4658,8 +4680,16 @@ export interface components {
             iso2?: string;
             iso3?: string;
             callingCode?: string;
-            currencyCode?: string;
-            currencyName?: string;
+            defaultCurrency?: components["schemas"]["CurrencySummaryResponse"];
+        };
+        CurrencySummaryResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            symbol?: string;
+            /** Format: int32 */
+            minorUnit?: number;
         };
         ApiResponseListRegionResponse: {
             success?: boolean;
@@ -8576,6 +8606,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CustomerResponse"];
+                };
+            };
+        };
+    };
+    getCurrentCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseCustomerResponse"];
                 };
             };
         };
